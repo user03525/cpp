@@ -1,0 +1,31 @@
+from selenium.webdriver import Firefox
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+def getCredentials():
+    file = open("credentials","r")
+    user = file.readline()
+    password = file.readline()
+    return user.strip(), password.strip()
+
+def login(user,parola):
+    options = Options()
+    browser = Firefox(options=options)
+    browser.get("https://www.pbinfo.ro")
+
+    WebDriverWait(browser, 20).until(EC.element_to_be_clickable((By.CSS_SELECTOR,"button.fc-button.fc-cta-do-not-consent.fc-secondary-button[aria-label='Do not consent']"))).click()
+
+    browser.find_element(By.LINK_TEXT,"Autentificare").click()
+
+    username=browser.find_element(By.ID,"user_login")
+    password=browser.find_element(By.ID,"parola_login")
+    username.send_keys(user)
+    password.send_keys(parola)
+
+    browser.find_element(By.CSS_SELECTOR,"button.btn.btn-primary").click()
+
+user, parola = getCredentials()
+print(user,parola)
+#login(user,parola)
