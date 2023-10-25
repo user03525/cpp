@@ -8,6 +8,7 @@ def getCredentials():
     file = open("credentials","r")
     user = file.readline()
     password = file.readline()
+    file.close()
     return user.strip(), password.strip()
 
 def login(user,parola):
@@ -25,7 +26,39 @@ def login(user,parola):
     password.send_keys(parola)
 
     browser.find_element(By.CSS_SELECTOR,"button.btn.btn-primary").click()
+    return browser
+
+def getProblemID():
+    file = open("test.cpp","r")
+    problemNr = file.readline()[2:].strip()
+    problemName = file.readline()[2:].strip()
+    file.close()
+    return problemNr, problemName
+
+def getSourceCode():
+    file = open("test.cpp","r")
+    source = file.read()
+    file.close()
+    
+    startIndex=source.find("#")
+    source = source[startIndex:]
+    return source
+
+def submitCode(browser):
+    problemNr, problemName= getProblemId()
+    sourceCode = getSourceCode()
+    problemURL="https://www.pbinfo.ro/probleme/"+problemNr+"/"+problemName
+    browser.get(problemURL)
+    sourceArea = browser.find_element(By.ID,"sursa")
+    sourceArea.send_keys(sourceCode)
+    submitButton = browser.find_element(By.ID,"btn-submit")
+    submitButton.click()
+
 
 user, parola = getCredentials()
-print(user,parola)
-#login(user,parola)
+#browser=login(user,parola)
+#submitCode(browser)
+print(getSourceCode())
+
+
+
