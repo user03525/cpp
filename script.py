@@ -4,6 +4,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+class Node:
+    def __init__(self,data):
+        self.left=None
+        self.right=None
+        self.data=data
+
+    def insert(self,data):
+        pass
+    
+
+    
+
 def getCredentials():
     file = open("credentials","r")
     user = file.readline()
@@ -39,9 +51,9 @@ def getSourceCode():
     file = open("test.cpp","r")
     source = file.read()
     file.close()
-    
     startIndex=source.find("#")
     source = source[startIndex:]
+
     return source
 
 def submitCode(browser):
@@ -58,7 +70,7 @@ def submitCode(browser):
 user, parola = getCredentials()
 #browser=login(user,parola)
 #submitCode(browser)
-print(getSourceCode())
+getSourceCode()
 
 
 
