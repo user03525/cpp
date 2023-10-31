@@ -3,18 +3,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
-class Node:
-    def __init__(self,data):
-        self.left=None
-        self.right=None
-        self.data=data
-
-    def insert(self,data):
-        pass
-    
-
-    
+import re
 
 def getCredentials():
     file = open("credentials","r")
@@ -47,14 +36,117 @@ def getProblemID():
     file.close()
     return problemNr, problemName
 
+def getTokens(source):
+    includes = []
+    prototypes = []
+    main = ""
+    functions = []
+    tokens = source.split("\n")
+    for i in range(len(tokens)):
+        if tokens[i].startswith("#include<") or tokens[i].startswith("using"):
+            includes.append(tokens[i])
+        elif tokens[i].startswith("int main"):
+            stack = []
+            stack.append('{')
+            main+=tokens[i]
+            main+="\n"
+            while stack:
+                i=i+1
+                for c in tokens[i]:
+                    if c == '{':
+                        stack.append(c)
+                    elif c=='}':
+                        stack.pop()
+                main+=tokens[i]
+                main+="\n"
+        elif re.search("[a-zA-Z_0-9]+ [a-zA-Z_0-9]+\(.+\);",tokens[i]):
+            prototypes.append(tokens[i])
+        elif re.search("[a-zA-Z_0-9]+ [a-zA-Z_0-9]+\(.+\)",tokens[i]):
+            stack = []
+            stack.append('{')
+            function=tokens[i]
+            function+="\n"
+            while stack:
+                i=i+1
+                for c in tokens[i]:
+                    if c == '{':
+                        stack.append(c)
+                    elif c=='}':
+                        stack.pop()
+                function+=tokens[i]
+                function+="\n"
+            functions.append(function)
+        
+    #print(includes)
+    #print(prototypes)
+    #print(main)
+    #print(functions)
+    return includes, prototypes, main, functions
+
+def getFunctionName(text):
+    indexStart = text.find(" ")
+    indexFinal = text.find("(")
+    return text[indexStart+1:indexFinal]
+
+def getAllPrototypes(prototypes, functions):
+    allPrototypes = []
+    for prototype in prototypes:
+        for function in functions:
+            functionName = getFunctionName(prototype) 
+            if functionName in function:
+                allPrototypes.append(prototype)
+                break
+    return allPrototypes
+
+def getAllFunctions(prototypes,functions):
+    allFunctions = []
+    for prototype in prototypes:
+        for function in functions:
+            if getFunctionName(prototype) in getFunctionName(function):
+                allFunctions.append(function)
+                break
+    return allFunctions
+
 def getSourceCode():
     file = open("test.cpp","r")
     source = file.read()
     file.close()
     startIndex=source.find("#")
     source = source[startIndex:]
+    includes, prototypes, main, functions = getTokens(source)
 
-    return source
+    file = open("hogwarts.h","r")
+    source = file.read()
+    file.close()
+    hIncludes, hPrototypes, _, _= getTokens(source)
+
+    file = open("hogwarts.cpp","r")
+    source = file.read()
+    file.close()
+    lIncludes, _, _, lFunctions = getTokens(source)
+    
+    allIncludes = sorted(set(hIncludes+lIncludes+includes))
+    allPrototypes = getAllPrototypes(prototypes+hPrototypes,[main]+functions)
+    allFunctions = getAllFunctions(allPrototypes,functions+lFunctions)
+    
+    finalSource = ""
+    for item in allIncludes:
+        finalSource += item
+        finalSource += "\n"
+    finalSource += "\n"
+    for item in allPrototypes:
+        finalSource += item
+        finalSource += "\n"
+    finalSource += "\n"
+    finalSource += main
+    finalSource += "\n"
+    for item in allFunctions:
+        finalSource += item
+        finalSource += "\n"
+    finalSource += "\n"
+    print(finalSource)
+
+    return finalSource
 
 def submitCode(browser):
     problemNr, problemName= getProblemId()
