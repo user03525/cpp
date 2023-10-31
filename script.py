@@ -3,7 +3,9 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 import re
+import time
 
 def getCredentials():
     file = open("credentials","r")
@@ -76,11 +78,6 @@ def getTokens(source):
                 function+=tokens[i]
                 function+="\n"
             functions.append(function)
-        
-    #print(includes)
-    #print(prototypes)
-    #print(main)
-    #print(functions)
     return includes, prototypes, main, functions
 
 def getFunctionName(text):
@@ -144,25 +141,40 @@ def getSourceCode():
         finalSource += item
         finalSource += "\n"
     finalSource += "\n"
-    print(finalSource)
+    #print(finalSource)
 
     return finalSource
 
 def submitCode(browser):
-    problemNr, problemName= getProblemId()
+    problemNr, problemName= getProblemID()
     sourceCode = getSourceCode()
     problemURL="https://www.pbinfo.ro/probleme/"+problemNr+"/"+problemName
     browser.get(problemURL)
-    sourceArea = browser.find_element(By.ID,"sursa")
-    sourceArea.send_keys(sourceCode)
+    browser.execute_script("document.getElementById('btn-submit').scrollIntoView();")
+
+    WebDriverWait(browser, 20).until(EC.element_to_be_clickable((By.ID,"btn-submit")))
+
+    sourceAreas = browser.find_elements(By.TAG_NAME,"textarea")
+    sourceAreas[1].send_keys(sourceCode)
     submitButton = browser.find_element(By.ID,"btn-submit")
     submitButton.click()
 
+def console():
+    while True:
+        print("c=3 ",end="")
+        command = input()
+        if command == "connect":
+            user, parola = getCredentials()
+            browser=login(user,parola)
+            print("connected")
+        elif command == "submit": 
+            submitCode(browser)
+            print("code submited")
+        elif command == "exit":
+            return
 
-user, parola = getCredentials()
-#browser=login(user,parola)
-#submitCode(browser)
-getSourceCode()
 
+
+console()
 
 
