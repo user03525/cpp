@@ -1,2 +1,2 @@
 test: test.cpp 
-	g++ -o test.o test.cpp
+	g++ -o test.o test.cpp hogwarts.cpp

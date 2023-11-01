@@ -61,9 +61,9 @@ def getTokens(source):
                         stack.pop()
                 main+=tokens[i]
                 main+="\n"
-        elif re.search("[a-zA-Z_0-9]+ [a-zA-Z_0-9]+\(.+\);",tokens[i]):
+        elif re.search("(?!return)(?<![a-zA-Z])(([a-zA-Z_0-9<>,]+) [a-zA-Z_0-9]+\(.+\));",tokens[i]):
             prototypes.append(tokens[i])
-        elif re.search("[a-zA-Z_0-9]+ [a-zA-Z_0-9]+\(.+\)",tokens[i]):
+        elif re.search("[a-zA-Z_0-9<>,]+ [a-zA-Z_0-9]+\(.+\)",tokens[i]):
             stack = []
             stack.append('{')
             function=tokens[i]
@@ -170,6 +170,8 @@ def console():
         elif command == "submit": 
             submitCode(browser)
             print("code submited")
+        elif command == "source":
+            print(getSourceCode())
         elif command == "exit":
             return
 
