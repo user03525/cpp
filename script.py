@@ -6,6 +6,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import re
 import time
+import termios
+import sys
+import tty
+import select
 
 def getCredentials():
     file = open("credentials","r")
@@ -38,47 +42,42 @@ def getProblemID():
     file.close()
     return problemNr, problemName
 
+def readFunction(tokens,i):
+    stack = []
+    stack.append('{')
+    function=tokens[i]
+    function+="\n"
+    while stack:
+        i=i+1
+        for c in tokens[i]:
+            if c == '{':
+                stack.append(c)
+            elif c == '}':
+                stack.pop()
+        function+=tokens[i]
+        function+="\n"
+    return function
+
+
 def getTokens(source):
     includes = []
     prototypes = []
     main = ""
     functions = []
+    templates = []
     tokens = source.split("\n")
     for i in range(len(tokens)):
         if tokens[i].startswith("#include<") or tokens[i].startswith("using"):
             includes.append(tokens[i])
         elif tokens[i].startswith("int main"):
-            stack = []
-            stack.append('{')
-            main+=tokens[i]
-            main+="\n"
-            while stack:
-                i=i+1
-                for c in tokens[i]:
-                    if c == '{':
-                        stack.append(c)
-                    elif c=='}':
-                        stack.pop()
-                main+=tokens[i]
-                main+="\n"
+            main = readFunction(tokens,i)
+        elif re.search("template",tokens[i]):
+            templates.append(readFunction(tokens,i))
         elif re.search("(?!return)(?<![a-zA-Z])(([a-zA-Z_0-9<>,]+) [a-zA-Z_0-9]+\(.+\));",tokens[i]):
             prototypes.append(tokens[i])
         elif re.search("[a-zA-Z_0-9<>,]+ [a-zA-Z_0-9]+\(.+\)",tokens[i]):
-            stack = []
-            stack.append('{')
-            function=tokens[i]
-            function+="\n"
-            while stack:
-                i=i+1
-                for c in tokens[i]:
-                    if c == '{':
-                        stack.append(c)
-                    elif c=='}':
-                        stack.pop()
-                function+=tokens[i]
-                function+="\n"
-            functions.append(function)
-    return includes, prototypes, main, functions
+            functions.append(readFunction(tokens,i))
+    return includes, prototypes, main, functions, templates
 
 def getFunctionName(text):
     indexStart = text.find(" ")
@@ -110,17 +109,17 @@ def getSourceCode():
     file.close()
     startIndex=source.find("#")
     source = source[startIndex:]
-    includes, prototypes, main, functions = getTokens(source)
+    includes, prototypes, main, functions, _ = getTokens(source)
 
     file = open("hogwarts.h","r")
     source = file.read()
     file.close()
-    hIncludes, hPrototypes, _, _= getTokens(source)
+    hIncludes, hPrototypes, _, _, templates = getTokens(source)
 
     file = open("hogwarts.cpp","r")
     source = file.read()
     file.close()
-    lIncludes, _, _, lFunctions = getTokens(source)
+    lIncludes, _, _, lFunctions, _ = getTokens(source)
     
     allIncludes = sorted(set(hIncludes+lIncludes+includes))
     allPrototypes = getAllPrototypes(prototypes+hPrototypes,[main]+functions)
@@ -129,6 +128,10 @@ def getSourceCode():
     finalSource = ""
     for item in allIncludes:
         finalSource += item
+        finalSource += "\n"
+    finalSource += "\n"
+    for item in templates:
+        finalSource += item;
         finalSource += "\n"
     finalSource += "\n"
     for item in allPrototypes:
@@ -160,22 +163,57 @@ def submitCode(browser):
     submitButton.click()
 
 def console():
+    '''
+    def isData():
+        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
+
+    old_settings = termios.tcgetattr(sys.stdin)
+    
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        while True:
+            if isData():
+                c = sys.stdin.read(3)
+                if c=="\x1b[A":
+                    print("yolo")
+            print("<?> ",end="")
+            command = input()
+            if command == "connect":
+                user, parola = getCredentials()
+                browser=login(user,parola)
+                print("connected")
+            elif command == "submit": 
+                submitCode(browser)
+                print("code submited")
+            elif command == "source":
+                print(getSourceCode())
+            elif command == "id":
+                print(*getProblemID())
+            elif command == "exit":
+                return
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    '''
+    browser = None
     while True:
-        print("c=3 ",end="")
+        print("<?> ",end="")
         command = input()
         if command == "connect":
             user, parola = getCredentials()
             browser=login(user,parola)
             print("connected")
         elif command == "submit": 
-            submitCode(browser)
-            print("code submited")
+            if browser:
+                submitCode(browser)
+                print("code submited")
+            else:
+                print("not connected")
         elif command == "source":
             print(getSourceCode())
+        elif command == "id":
+            print(*getProblemID())
         elif command == "exit":
             return
-
-
 
 console()
 
