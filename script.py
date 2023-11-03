@@ -10,6 +10,7 @@ import termios
 import sys
 import tty
 import select
+from kbhit import KBHit
 
 def getCredentials():
     file = open("credentials","r")
@@ -162,58 +163,51 @@ def submitCode(browser):
     submitButton = browser.find_element(By.ID,"btn-submit")
     submitButton.click()
 
-def console():
-    '''
-    def isData():
-        return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
+def execute(command):
+    if command == "connect":
+        user, parola = getCredentials()
+        browser=login(user,parola)
+        print("connected")
+    elif command == "submit": 
+        if browser:
+            submitCode(browser)
+            print("code submited")
+        else:
+            print("not connected")
+    elif command == "source":
+        print(getSourceCode())
+    elif command == "id":
+        print(*getProblemID())
+    elif command == "exit":
+        quit()
 
-    old_settings = termios.tcgetattr(sys.stdin)
-    
-    try:
-        tty.setcbreak(sys.stdin.fileno())
-        while True:
-            if isData():
-                c = sys.stdin.read(3)
-                if c=="\x1b[A":
-                    print("yolo")
-            print("<?> ",end="")
-            command = input()
-            if command == "connect":
-                user, parola = getCredentials()
-                browser=login(user,parola)
-                print("connected")
-            elif command == "submit": 
-                submitCode(browser)
-                print("code submited")
-            elif command == "source":
-                print(getSourceCode())
-            elif command == "id":
-                print(*getProblemID())
-            elif command == "exit":
-                return
-    finally:
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-    '''
+def console():
     browser = None
+    sign = "<?> "
+    print(sign,end="",flush=True)
+    kb = KBHit()
     while True:
-        print("<?> ",end="")
-        command = input()
-        if command == "connect":
-            user, parola = getCredentials()
-            browser=login(user,parola)
-            print("connected")
-        elif command == "submit": 
-            if browser:
-                submitCode(browser)
-                print("code submited")
-            else:
-                print("not connected")
-        elif command == "source":
-            print(getSourceCode())
-        elif command == "id":
-            print(*getProblemID())
-        elif command == "exit":
-            return
+        if kb.kbhit():
+            buffer = ""
+            while True:
+                c = kb.getch()
+                #print(ord(c))
+                print(c,end="",flush=True)
+                if c=='\n':
+                    break
+                elif ord(c)==127:
+                    size = len(buffer)
+                    if size>0:
+                        buffer=buffer.rstrip(buffer[-1])
+                        print("\r"+(" "*(size+4))+"\r"+sign+buffer,end="",flush=True)
+                else:
+                    buffer+=c
+            execute(buffer) 
+            print(sign,end="",flush=True)
+
+        #command = input()
+    kb.set_normal_term()
+
 
 console()
 
