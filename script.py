@@ -199,7 +199,8 @@ def console():
                     size = len(buffer)
                     if size>0:
                         buffer=buffer.rstrip(buffer[-1])
-                        print("\r"+(" "*(size+4))+"\r"+sign+buffer,end="",flush=True)
+                        #print("\r"+(" "*(size+4))+"\r"+sign+buffer,end="",flush=True)
+                    
                 else:
                     buffer+=c
             execute(buffer) 
