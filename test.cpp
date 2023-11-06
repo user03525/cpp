@@ -1,5 +1,5 @@
-//986	
-//numarare7
+//2858	
+//pv
 
 #include<algorithm>
 #include<numeric>
@@ -7,20 +7,20 @@
 
 using namespace std;
 
-int process(vector<double>& v);
+template<typename T> void process(vector<T>& v){
+	printReverse(v);
+	cout<<sum_if(v,[](int idx,int val){return val%2==0;})<<endl;
+	cout<<sum_if(v,[](int idx,int val){return idx%2!=0;})<<endl;
+	cout<<count_if(v.begin(),v.end(),[](int n){return n%10==0;})<<endl;
+	cout<<sum_if(v,[](int idx,int val){return idx%2==0 && val%3==0;})<<endl;
+}
 	
 int main(){
-	vector<double> v;
+	vector<int> v;
 	read(v);
-	cout<<process(v);
+	process(v);
 	return 0;
 }
 
-int process(vector<double>& v){
-	double first = *v.begin();
-	double last = *(v.end()-1);
-	if(first>last) swap(first,last);
-	return count_if(v.begin(),v.end(),[first,last](double n){return n<first || n>last;});
-}
 
 

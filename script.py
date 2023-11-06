@@ -10,7 +10,7 @@ import termios
 import sys
 import tty
 import select
-from kbhit import KBHit
+from console import Console
 
 def getCredentials():
     file = open("credentials","r")
@@ -110,12 +110,12 @@ def getSourceCode():
     file.close()
     startIndex=source.find("#")
     source = source[startIndex:]
-    includes, prototypes, main, functions, _ = getTokens(source)
+    includes, prototypes, main, functions, templates = getTokens(source)
 
     file = open("hogwarts.h","r")
     source = file.read()
     file.close()
-    hIncludes, hPrototypes, _, _, templates = getTokens(source)
+    hIncludes, hPrototypes, _, _, hTemplates = getTokens(source)
 
     file = open("hogwarts.cpp","r")
     source = file.read()
@@ -123,6 +123,7 @@ def getSourceCode():
     lIncludes, _, _, lFunctions, _ = getTokens(source)
     
     allIncludes = sorted(set(hIncludes+lIncludes+includes))
+    allTemplates = set(templates+hTemplates)
     allPrototypes = getAllPrototypes(prototypes+hPrototypes,[main]+functions)
     allFunctions = getAllFunctions(allPrototypes,functions+lFunctions)
     
@@ -131,7 +132,7 @@ def getSourceCode():
         finalSource += item
         finalSource += "\n"
     finalSource += "\n"
-    for item in templates:
+    for item in allTemplates:
         finalSource += item;
         finalSource += "\n"
     finalSource += "\n"
@@ -145,7 +146,6 @@ def getSourceCode():
         finalSource += item
         finalSource += "\n"
     finalSource += "\n"
-    #print(finalSource)
 
     return finalSource
 
@@ -163,53 +163,35 @@ def submitCode(browser):
     submitButton = browser.find_element(By.ID,"btn-submit")
     submitButton.click()
 
-def execute(command):
-    if command == "connect":
-        user, parola = getCredentials()
-        browser=login(user,parola)
-        print("connected")
-    elif command == "submit": 
-        if browser:
-            submitCode(browser)
-            print("code submited")
-        else:
-            print("not connected")
-    elif command == "source":
-        print(getSourceCode())
-    elif command == "id":
-        print(*getProblemID())
-    elif command == "exit":
-        quit()
+class Handler():
+    def __init__(self,console):
+        self.console=console
+        self.browser=None
 
-def console():
-    browser = None
-    sign = "<?> "
-    print(sign,end="",flush=True)
-    kb = KBHit()
-    while True:
-        if kb.kbhit():
-            buffer = ""
-            while True:
-                c = kb.getch()
-                #print(ord(c))
-                print(c,end="",flush=True)
-                if c=='\n':
-                    break
-                elif ord(c)==127:
-                    size = len(buffer)
-                    if size>0:
-                        buffer=buffer.rstrip(buffer[-1])
-                        #print("\r"+(" "*(size+4))+"\r"+sign+buffer,end="",flush=True)
-                    
-                else:
-                    buffer+=c
-            execute(buffer) 
-            print(sign,end="",flush=True)
+    def execute(self,command):
+        if command == "connect":
+            user, parola = getCredentials()
+            self.browser=login(user,parola)
+            console.print("connected")
+        elif command == "submit": 
+            if self.browser:
+                submitCode(self.browser)
+                console.print("code submited")
+            else:
+                console.print("not connected")
+        elif command == "source":
+            console.print(getSourceCode())
+        elif command == "id":
+            console.print(*getProblemID())
+        elif command == "exit":
+            quit()
+        elif command.startswith("print"):
+            console.print(command[command.find(" ")+1:])
+        elif command=="clear":
+            console.clear()
 
-        #command = input()
-    kb.set_normal_term()
-
-
-console()
+console = Console()
+console.addHandler(Handler(console))
+console.update()
 
 

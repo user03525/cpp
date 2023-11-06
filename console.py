@@ -2,28 +2,33 @@ import curses
 import math
 
 class Line():
-    def __init__(self,line):
+    def __init__(self,line,sign=True):
         self.line=line
         self.size = len(line)
+        self.sign=sign
         self.rows=1
 
-    def update(self,screen):
+    def getNrRows(self,screen):
         _ , width = screen.getmaxyx()
         ratio = self.size//width
         self.rows = int(math.ceil(self.size/width))
+        return self.rows
 
     def draw(self,console):
-        console.screen.addstr(console.i,0,console.sign+self.line)
-        self.update(console.screen)
+        self.getNrRows(console.screen)
+        console.screen.addstr(console.i,0,console.sign+self.line if self.sign else self.line)
         return console.i+self.rows
 
     def getString(self):
         return self.line
 
+
+
 class Console():
     def __init__(self):
         self.screen = curses.initscr()
         self.screen.keypad(True)
+        self.screen.scrollok(True)
         self.lines=[]
         self.sign = "<?> "
         self.currentLine = "" 
@@ -33,6 +38,10 @@ class Console():
         self.DELETE_CODE=127
         self.i=0
         self.handler=None
+        self.scroll=0
+
+    def clear(self):
+        self.lines.clear()
 
     def addHandler(self,handler):
         self.handler=handler
@@ -42,21 +51,45 @@ class Console():
         self.lines.append(line);
         self.currentLine=""
         self.lineNumber=len(self.lines)
-
+        height , _ = self.screen.getmaxyx()
+        if self.lineNumber>=height:
+            self.scroll=self.lineNumber-height
+        
     def pop(self):
         self.lines.pop()
         self.lineNumber=len(self.lines)
 
-    def draw(self):
+    def drawHistory(self):
         self.screen.clear()
-        self.i=0
+
+        drawHeight=0
         for line in self.lines:
-            self.i = line.draw(self)
+            drawHeight+=line.getNrRows(self.screen)
+
+        height , _ = self.screen.getmaxyx()
+        lineIndex = 0
+
+        while drawHeight>=height:
+            drawHeight-=self.lines[lineIndex].getNrRows(self.screen)
+            lineIndex+=1
+        
+        self.i=0;
+        while lineIndex<len(self.lines):
+            self.i = self.lines[lineIndex].draw(self)
+            lineIndex+=1
+        self.screen.refresh()
+
+    def draw(self):
+        self.drawHistory()
         self.screen.addstr(self.i,0,self.sign+self.currentLine)
         self.screen.refresh()
-   
+
     def update(self):
+        command=""
         while True:
+            self.drawHistory()
+            if self.handler != None:
+                self.handler.execute(command)
             self.draw()
             while True:
                 c = chr(self.screen.getch())
@@ -85,21 +118,26 @@ class Console():
                     self.draw()
                 else:
                     self.currentLine+=c
-            if self.handler != None:
-                self.handler(self,self.currentLine)
+            command=self.currentLine
             self.put(self.currentLine)
         curses.endwin()
 
-    def print(msg):
-        pass
+    def print(self,*args):
+        msg=" ".join(args)
+        for line in msg.split("\n"):
+            self.lines.append(Line(line,sign=False))
 
-def execute(console,command):
-    if command=="exit":
-        quit()
-    elif command=="print":
-        console.print("test gud")
-        
 
-console = Console()
-console.addHandler(execute)
-console.update()
+if __name__ == "__main__":    
+    def execute(console,command):
+        if command=="exit":
+            quit()
+        elif command.startswith("print"):
+            console.print(command[command.find(" ")+1:])
+        elif command=="clear":
+            console.clear()
+            
+
+    console = Console()
+    console.addHandler(execute)
+    console.update()
