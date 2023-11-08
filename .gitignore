@@ -1,4 +1,4 @@
 test.o
 credentials
 geckodriver.log
-__pychache__
+__pychache__/
