@@ -123,9 +123,15 @@ class Console():
         curses.endwin()
 
     def print(self,*args):
-        msg=" ".join(args)
-        for line in msg.split("\n"):
-            self.lines.append(Line(line,sign=False))
+        if type(args[0])==list:
+            for item in args[0]:
+                self.lines.append(Line(item,sign=False))
+        elif args[0] is None:
+            self.lines.append(Line("None",sign=False))
+        else:
+            msg=" ".join(args)
+            for line in msg.split("\n"):
+                self.lines.append(Line(line,sign=False))
 
 
 if __name__ == "__main__":    

@@ -1,5 +1,5 @@
-//2858	
-//pv
+//498	
+//numararepie
 
 #include<algorithm>
 #include<numeric>
@@ -7,18 +7,14 @@
 
 using namespace std;
 
-template<typename T> void process(vector<T>& v){
-	printReverse(v);
-	cout<<sum_if(v,[](int idx,int val){return val%2==0;})<<endl;
-	cout<<sum_if(v,[](int idx,int val){return idx%2!=0;})<<endl;
-	cout<<count_if(v.begin(),v.end(),[](int n){return n%10==0;})<<endl;
-	cout<<sum_if(v,[](int idx,int val){return idx%2==0 && val%3==0;})<<endl;
+template<typename T> int process(vector<T>& v){
+	return double_map(v,[](int a,int b,int& rez){ rez+=pie(a,b);});
 }
 	
 int main(){
 	vector<int> v;
 	read(v);
-	process(v);
+	cout<<process(v);
 	return 0;
 }
 

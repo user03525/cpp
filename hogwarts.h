@@ -31,3 +31,6 @@ template<typename T> T sum_if(std::vector<T>& v,bool (*condition)(int idx,int va
 }
 
 bool isPrime(int n);
+int cmmdc(int a,int b);
+bool pie(int a,int b);
+int double_map(std::vector<int>& v,void (*f)(int a,int b,int& r));
