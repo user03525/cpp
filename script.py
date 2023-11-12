@@ -247,7 +247,9 @@ class Handler():
         elif command == "id":
             console.print(*self.getProblemID())
         elif command == "exit":
-            self.browser.quit()
+            if self.browser != None:
+                self.browser.quit()
+            console.close()
             quit()
         elif command.startswith("print"):
             console.print(command[command.find(" ")+1:])
