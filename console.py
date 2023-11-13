@@ -19,19 +19,42 @@ class Line():
     def getRowHeight(self,row,width):
         return int(math.ceil(len(row)/width))
 
-    def draw(self,console):
-        self.getNrRows(console.screen)
-        _ , width = console.screen.getmaxyx()
-        #console.screen.addstr(console.i,0,console.sign+self.line if self.command else self.line)
-        i = console.i
-        for token in self.tokens:
-            console.screen.addstr(i,0,console.sign+token if self.command else token)
-            i+=self.getRowHeight(token,width)
-        return i 
-
     def getString(self):
         return self.line
 
+class Prompter():
+    def __init__(self,console):
+        self.lines=[]
+        self.console=console
+        self.startIndex=0
+        self.height , self.width = self.console.screen.getmaxyx()
+
+    def update(self):
+        self.height , self.width = self.console.screen.getmaxyx()
+        self.lines.clear()
+        for line in self.console.lines:
+            for token in line.tokens:
+                self.lines.append(self.console.sign+token if line.command else token)
+        self.size=len(self.lines)
+        self.startIndex=max(self.size-self.height,0)
+
+    def draw(self):
+        self.console.screen.clear()
+        for i in range(self.height):
+            if i+self.startIndex>=0 and i+self.startIndex<self.size:
+                self.console.screen.addstr(i,0,self.lines[i+self.startIndex])
+            else:
+                break
+        self.console.screen.refresh()
+        return i
+
+    def scrollUp(self):
+        #if self.startIndex>0:
+        self.startIndex-=1
+
+    def scrollDown(self):
+        #if self.size-self.startIndex<self.height:
+        self.startIndex+=1
 
 class Console():
     def __init__(self):
@@ -54,6 +77,7 @@ class Console():
         self.scroll=0
         self.blockScrollUp=False
         self.blockScrollDown=False
+        self.prompter=Prompter(self)
 
     def clear(self):
         self.lines.clear()
@@ -77,35 +101,11 @@ class Console():
         self.lineNumber=len(self.lines)
 
     def drawHistory(self):
-        self.screen.clear()
-
-        drawHeight=0
-        for line in self.lines:
-            drawHeight+=line.getNrRows(self.screen)
-
-        height , _ = self.screen.getmaxyx()
-        lineIndex = 0
-
-        while drawHeight>=height:
-            drawHeight-=self.lines[lineIndex].getNrRows(self.screen)
-            lineIndex+=1
-
-        lineIndex+=self.scroll
-
-        if lineIndex <= 0:
-            lineIndex=0
-            self.blockScrollUp=True
-        if lineIndex>=len(self.lines):
-            self.blockScrollDown=True
-        
-        self.i=0;
-        while lineIndex<len(self.lines) and self.i+self.lines[lineIndex].getNrRows(self.screen)<height:
-            self.i = self.lines[lineIndex].draw(self)
-            lineIndex+=1
-        self.screen.refresh()
+        self.prompter.update()
+        return self.prompter.draw()
 
     def draw(self):
-        self.drawHistory()
+        self.i = self.drawHistory()
         height , _ = self.screen.getmaxyx()
         if self.i<height:
             self.screen.addstr(self.i,0,self.sign+self.currentLine)
@@ -146,15 +146,11 @@ class Console():
                         self.currentLine=self.lines[self.lineNumber].getString()
                     self.draw()
                 elif ord(c)==self.PAGE_UP_CODE:
-                    if not self.blockScrollUp:
-                        self.scroll-=1
+                    self.prompter.scrollUp()
                     self.draw()
-                    self.blockScrollDown=False
                 elif ord(c)==self.PAGE_DOWN_CODE:
-                    if not self.blockScrollDown:
-                        self.scroll+=1
+                    self.prompter.scrollDown()
                     self.draw()
-                    self.blockScrollUp=False
                 else:
                     #self.currentLine+=str(ord(c))
                     self.currentLine+=c
