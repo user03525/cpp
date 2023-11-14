@@ -31,30 +31,41 @@ class Prompter():
 
     def update(self):
         self.height , self.width = self.console.screen.getmaxyx()
+        self.getLines()
+        self.size=len(self.lines)
+        self.startIndex=max(self.size-self.height+1,self.startIndex)
+
+    def getLines(self):
         self.lines.clear()
         for line in self.console.lines:
             for token in line.tokens:
                 self.lines.append(self.console.sign+token if line.command else token)
-        self.size=len(self.lines)
-        self.startIndex=max(self.size-self.height,0)
 
     def draw(self):
         self.console.screen.clear()
-        for i in range(self.height):
+        i = 0
+        while i < self.height-1:
             if i+self.startIndex>=0 and i+self.startIndex<self.size:
                 self.console.screen.addstr(i,0,self.lines[i+self.startIndex])
             else:
                 break
+            i+=1
+        self.console.screen.addstr(i,0,self.console.sign+self.console.currentLine)
         self.console.screen.refresh()
-        return i
 
     def scrollUp(self):
-        #if self.startIndex>0:
-        self.startIndex-=1
+        self.height , self.width = self.console.screen.getmaxyx()
+        self.getLines()
+        self.size=len(self.lines)
+        self.startIndex=max(self.startIndex-1,0)
+        self.draw()
 
     def scrollDown(self):
-        #if self.size-self.startIndex<self.height:
-        self.startIndex+=1
+        self.height , self.width = self.console.screen.getmaxyx()
+        self.getLines()
+        self.size=len(self.lines)
+        self.startIndex=min(self.startIndex+1,self.size)
+        self.draw()
 
 class Console():
     def __init__(self):
@@ -74,13 +85,13 @@ class Console():
         self.DELETE_CODE=127
         self.i=0
         self.handler=None
-        self.scroll=0
         self.blockScrollUp=False
         self.blockScrollDown=False
         self.prompter=Prompter(self)
 
     def clear(self):
         self.lines.clear()
+        self.prompter.update()
 
     def addHandler(self,handler):
         self.handler=handler
@@ -88,35 +99,18 @@ class Console():
     def put(self,string):
         line = Line(string)
         self.lines.append(line);
-        self.currentLine=""
         self.lineNumber=len(self.lines)
-        height , _ = self.screen.getmaxyx()
-        self.scroll=0
-        #self.blockScrollUp=False
-        #self.blockScrollDown=False
-        
         
     def pop(self):
         self.lines.pop()
         self.lineNumber=len(self.lines)
 
-    def drawHistory(self):
-        self.prompter.update()
-        return self.prompter.draw()
-
     def draw(self):
-        self.i = self.drawHistory()
-        height , _ = self.screen.getmaxyx()
-        if self.i<height:
-            self.screen.addstr(self.i,0,self.sign+self.currentLine)
-            self.screen.refresh()
+        self.prompter.update()
+        self.prompter.draw()
 
     def update(self):
-        command=""
         while True:
-            self.drawHistory()
-            if self.handler != None:
-                self.handler.execute(command)
             self.draw()
             while True:
                 c = chr(self.screen.getch())
@@ -147,15 +141,16 @@ class Console():
                     self.draw()
                 elif ord(c)==self.PAGE_UP_CODE:
                     self.prompter.scrollUp()
-                    self.draw()
                 elif ord(c)==self.PAGE_DOWN_CODE:
                     self.prompter.scrollDown()
-                    self.draw()
                 else:
                     #self.currentLine+=str(ord(c))
                     self.currentLine+=c
-            command=self.currentLine
             self.put(self.currentLine)
+            if self.handler != None:
+                self.handler.execute(self.currentLine)
+                self.draw()
+            self.currentLine=""
 
     def print(self,*args):
         if type(args[0])==list:
