@@ -1,5 +1,6 @@
 import curses
 import math
+import textwrap
 
 class Line():
     def __init__(self,line,command=True):
@@ -21,6 +22,24 @@ class Line():
 
     def getString(self):
         return self.line
+    
+    def updateTokens(self,console):
+        tokens=[]
+        _ , width = console.screen.getmaxyx()
+        if len(self.tokens)>0:
+            index = width-len(console.sign)
+            if index<len(self.tokens[0]):
+                tokens.append(self.tokens[0][:index])
+                tokens+=textwrap.wrap(self.tokens[0][index:],width)
+            else:
+                tokens.append(self.tokens[0])
+        for i in range(1,len(self.tokens)):
+            tokens+=self.getMultipleLines(self.tokens[i],width)
+        self.tokens=tokens
+
+    def getMultipleLines(self, token, width):
+        return textwrap.wrap(token,width)
+
 
 class Prompter():
     def __init__(self,console):
@@ -38,8 +57,14 @@ class Prompter():
     def getLines(self):
         self.lines.clear()
         for line in self.console.lines:
-            for token in line.tokens:
-                self.lines.append(self.console.sign+token if line.command else token)
+            line.updateTokens(self.console)
+            if len(line.tokens)>0:
+                if line.command:
+                    self.lines.append(self.console.sign+line.tokens[0])
+                else:
+                    self.lines.append(self.console.sign+line.tokens[0])
+            for i in range(1,len(line.tokens)):
+                self.lines.append(line.tokens[i])
 
     def draw(self):
         self.console.screen.clear()
