@@ -6,9 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import re
 import time
-import termios
 import sys
-import tty
 import select
 from console import Console
 from function import Function
@@ -19,7 +17,7 @@ class Handler():
         self.browser=None
 
     def getCredentials(self):
-        file = open("credentials","r")
+        file = open("credentials.txt","r")
         user = file.readline()
         password = file.readline()
         file.close()

@@ -1,4 +1,4 @@
 test.o
-credentials
+credentials.txt
 geckodriver.log
 __pychache__/
